@@ -1,5 +1,10 @@
 set windows-powershell := true
 
-[working-directory("frontend")]
-dev:
+[parallel]
+dev: dev-backend dev-frontend
+
+dev-frontend:
     pnpm dev
+
+dev-backend:
+    uv run fastapi dev backend/src/main.py

@@ -1,13 +1,13 @@
 {
-  "name": "mc-rcon-gui-frontend",
+  "name": "SiYi",
   "version": "0.1.0",
   "description": "",
   "type": "module",
   "scripts": {
-    "start": "vite",
-    "dev": "vite",
-    "build": "vite build",
-    "serve": "vite preview"
+    "start": "vite ./frontend/",
+    "dev": "vite ./frontend/",
+    "build": "vite build ./frontend/",
+    "serve": "vite preview ./frontend/"
   },
   "license": "MIT",
   "devDependencies": {
