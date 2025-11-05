@@ -1,8 +1,14 @@
-from pydantic_settings import BaseSettings
+from functools import lru_cache
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
-class AppConfiguration(BaseSettings):
-    APP_NAME = "SiYi API"
+class AppSettings(BaseSettings):
+    APP_NAME: str = "SiYi API"
+    MQTT_BROKER_HOST: str = "broker.emqx.io"
+    MQTT_BROKER_PORT: int = 1883
+    model_config = SettingsConfigDict(env_file=".env")
 
 
-config = AppConfiguration()
+@lru_cache
+def get_app_settings() -> AppSettings:
+    return AppSettings()
