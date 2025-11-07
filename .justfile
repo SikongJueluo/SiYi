@@ -8,3 +8,6 @@ dev-frontend:
 
 dev-backend:
     uv run fastapi dev backend/src/main.py
+
+update-requirements:
+    uv export --project listener/mcdr-plugin --format requirements.txt --output-file listener/mcdr-plugin/requirements.txt

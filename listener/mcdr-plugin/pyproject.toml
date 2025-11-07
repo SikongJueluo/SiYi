@@ -1,10 +1,7 @@
 [project]
 name = "siyi-mcdr-plugin"
 version = "0.1.0"
-description = "Add your description here"
+description = "A plugin to communicate between MCDR and SiYi"
 readme = "README.md"
 requires-python = ">=3.13"
-dependencies = [
-    "mcdreforged>=2.15.5",
-    "websockets>=15.0.1",
-]
+dependencies = ["mcdreforged>=2.15.5", "websockets>=15.0.1"]
