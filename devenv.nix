@@ -5,4 +5,7 @@
   inputs,
   ...
 }: {
+  packages = [
+    pkgs.commitizen
+  ];
 }
