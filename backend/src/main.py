@@ -1,36 +1,14 @@
-import logging
 import structlog
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.responses import RedirectResponse
 from starlette import status
 from backend.src.config import get_app_settings
+from backend.src.logger_setup import logger_setup
 from backend.src.mqtt.router import close_mqtt, init_mqtt, router as mqtt_router
 
-# StructLog config
-structlog.configure(
-    processors=[
-        structlog.contextvars.merge_contextvars,
-        structlog.processors.add_log_level,
-        structlog.processors.StackInfoRenderer(),
-        structlog.processors.CallsiteParameterAdder(
-            {
-                structlog.processors.CallsiteParameter.FILENAME,
-                structlog.processors.CallsiteParameter.FUNC_NAME,
-                structlog.processors.CallsiteParameter.LINENO,
-            }
-        ),
-        structlog.processors.TimeStamper(fmt="iso", utc=True),
-        # structlog.processors.JSONRenderer(),  # 生产环境用 JSON
-        structlog.dev.set_exc_info,
-        structlog.dev.ConsoleRenderer(colors=True),  # 开发环境用这个
-    ],
-    wrapper_class=structlog.make_filtering_bound_logger(logging.DEBUG),
-    logger_factory=structlog.PrintLoggerFactory(),
-    cache_logger_on_first_use=True,
-)
-
-logger = structlog.get_logger()
+logger_setup()
+logger: structlog.stdlib.BoundLogger = structlog.get_logger()
 
 
 @asynccontextmanager
