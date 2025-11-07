@@ -1,0 +1,12 @@
+{
+	"id": "siyi-mcdr-plugin",
+	"version": "0.1.0",
+	"name": "SiYi Plugin",
+	"description": "A plugin to communicate between MCDR and SiYi",
+	"author": "SikongJueluo",
+	"link": "https://github.com/SikongJueluo/SiYi/tree/main/listener/mcdr-plugin",
+	"dependencies": {
+		"mcdreforged": ">=2.15.0",
+		"websockets": ">=15.0.1"
+	}
+}
