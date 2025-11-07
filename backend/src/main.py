@@ -1,11 +1,10 @@
 import structlog
 from contextlib import asynccontextmanager
-from fastapi import FastAPI
+from fastapi import FastAPI, WebSocket
 from fastapi.responses import RedirectResponse
 from starlette import status
 from backend.src.config import get_app_settings
 from backend.src.logger_setup import logger_setup
-from backend.src.mqtt.router import close_mqtt, init_mqtt, router as mqtt_router
 
 logger_setup()
 logger: structlog.stdlib.BoundLogger = structlog.get_logger()
@@ -14,10 +13,8 @@ logger: structlog.stdlib.BoundLogger = structlog.get_logger()
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
     # Init
-    await init_mqtt()
     yield
     # Close
-    await close_mqtt()
 
 
 description = """
@@ -43,10 +40,20 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-app.include_router(mqtt_router)
-
 
 @app.get("/", status_code=status.HTTP_308_PERMANENT_REDIRECT)
 async def root():
     logger.info("Redict to frontend...")
     return RedirectResponse("http://localhost:3000", status.HTTP_308_PERMANENT_REDIRECT)
+
+
+@app.websocket("/ws")
+async def websocket_endpoint(websocket: WebSocket):
+    await websocket.accept()
+    await logger.ainfo(
+        "Connect to web socket: %{socket}", {"socket": websocket.client.host}
+    )
+
+    while True:
+        data = await websocket.receive_text()
+        await logger.ainfo("Receive Message: %{data}", {"data": data})
