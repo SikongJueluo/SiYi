@@ -7,11 +7,16 @@ requires-python = ">=3.13"
 dependencies = []
 
 [tool.uv.workspace]
-members = ["backend", "listener/mcdr-plugin"]
+members = [
+    "backend",
+    "listener/mcdr-plugin",
+    "shared/py-protocol",
+]
 exclude = []
 
 [tool.uv.sources]
 siyi-mcdr-plugin = { workspace = true }
+siyi-py-protocol = { workspace = true }
 
 [tool.commitizen]
 name = "cz_conventional_commits"
