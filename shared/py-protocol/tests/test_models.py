@@ -6,6 +6,7 @@
 
 import json
 import uuid
+from typing import Any, cast
 
 import pytest
 from pydantic import ValidationError
@@ -73,7 +74,7 @@ class TestRequest:
     def test_request_missing_command_raises_error(self):
         """测试缺少 command 时抛出验证错误"""
         with pytest.raises(ValidationError):
-            Request()
+            Request()  # type: ignore[call-arg]
 
     def test_request_type_is_immutable(self):
         """测试 type 字段默认值为 request"""
@@ -147,17 +148,17 @@ class TestResponse:
     def test_response_missing_id_raises_error(self):
         """测试缺少 id 时抛出验证错误"""
         with pytest.raises(ValidationError):
-            Response(status="ok")
+            Response(status="ok")  # type: ignore[call-arg]
 
     def test_response_missing_status_raises_error(self):
         """测试缺少 status 时抛出验证错误"""
         with pytest.raises(ValidationError):
-            Response(id="test")
+            Response(id="test")  # type: ignore[call-arg]
 
     def test_response_invalid_status_raises_error(self):
         """测试无效的 status 值抛出验证错误"""
         with pytest.raises(ValidationError):
-            Response(id="test", status="invalid")
+            Response(id="test", status="invalid")  # type: ignore[arg-type]
 
     def test_response_serialization(self):
         """测试响应序列化为 JSON"""
@@ -226,7 +227,7 @@ class TestEvent:
     def test_event_missing_name_raises_error(self):
         """测试缺少 name 时抛出验证错误"""
         with pytest.raises(ValidationError):
-            Event()
+            Event()  # type: ignore[call-arg]
 
 
 class TestParseMessage:
@@ -453,6 +454,8 @@ class TestEdgeCases:
         json_str = req.model_dump_json()
         parsed = parse_message(json_str)
 
+        assert isinstance(parsed, Request)
+        assert parsed.params is not None
         assert parsed.params["msg"] == 'Hello\nWorld\t"quoted"'
 
     def test_unicode_in_strings(self):
@@ -461,6 +464,8 @@ class TestEdgeCases:
         json_str = event.model_dump_json()
         parsed = parse_message(json_str)
 
+        assert isinstance(parsed, Event)
+        assert parsed.data is not None
         assert parsed.data["message"] == "你好世界 🌍 مرحبا"
 
     def test_large_numeric_values(self):
@@ -471,4 +476,7 @@ class TestEdgeCases:
         json_str = resp.model_dump_json()
         parsed = parse_message(json_str)
 
-        assert parsed.data["big"] == 10**20
+        assert isinstance(parsed, Response)
+        assert parsed.data is not None
+        data = cast(dict[str, Any], parsed.data)
+        assert data["big"] == 10**20
