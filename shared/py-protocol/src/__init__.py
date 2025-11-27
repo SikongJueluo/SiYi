@@ -27,6 +27,15 @@ Example:
     >>> msg = parse_message('{"type": "request", "command": "test"}')
 """
 
+from .client import (
+    EventHandler as ClientEventHandler,
+)
+from .client import (
+    ProtocolClient,
+)
+from .client import (
+    RequestHandler as ClientRequestHandler,
+)
 from .models import (
     Event,
     IdType,
@@ -34,6 +43,16 @@ from .models import (
     Request,
     Response,
     parse_message,
+)
+from .server import (
+    ConnectionHandler,
+    ProtocolServer,
+)
+from .server import (
+    EventHandler as ServerEventHandler,
+)
+from .server import (
+    RequestHandler as ServerRequestHandler,
 )
 
 __version__ = "0.1.0"
@@ -45,5 +64,14 @@ __all__ = [
     "Event",
     "Message",
     "parse_message",
+    # Client
+    "ProtocolClient",
+    "ClientRequestHandler",
+    "ClientEventHandler",
+    # Server
+    "ProtocolServer",
+    "ServerRequestHandler",
+    "ServerEventHandler",
+    "ConnectionHandler",
     "__version__",
 ]
