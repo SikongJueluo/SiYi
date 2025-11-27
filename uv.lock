@@ -864,7 +864,7 @@ requires-dist = [
 [[package]]
 name = "siyi-mcdr-plugin"
 version = "0.1.0"
-source = { editable = "listener/mcdr-plugin" }
+source = { virtual = "listener/mcdr-plugin" }
 dependencies = [
     { name = "mcdreforged" },
     { name = "websockets" },
@@ -885,11 +885,20 @@ dependencies = [
     { name = "websockets" },
 ]
 
+[package.optional-dependencies]
+dev = [
+    { name = "pytest" },
+    { name = "pytest-asyncio" },
+]
+
 [package.metadata]
 requires-dist = [
     { name = "pydantic", specifier = ">=2.12.3" },
+    { name = "pytest", marker = "extra == 'dev'", specifier = ">=8.0.0" },
+    { name = "pytest-asyncio", marker = "extra == 'dev'", specifier = ">=0.23.0" },
     { name = "websockets", specifier = ">=15.0.1" },
 ]
+provides-extras = ["dev"]
 
 [[package]]
 name = "sniffio"
