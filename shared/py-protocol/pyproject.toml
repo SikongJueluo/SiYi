@@ -1,10 +1,38 @@
 [project]
 name = "siyi-py-protocol"
 version = "0.1.0"
-description = "Add your description here"
+description = "司驿 Python 通信协议库 - 基于 Pydantic 与 WebSocket 构建的双向通信库"
 readme = "README.md"
 requires-python = ">=3.13"
+license = { text = "MIT" }
+authors = [
+    { name = "SiYi Team" }
+]
+keywords = ["websocket", "protocol", "pydantic", "async", "communication"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Communications",
+    "Topic :: Internet",
+    "Typing :: Typed",
+]
 dependencies = [
     "pydantic>=2.12.3",
     "websockets>=15.0.1",
 ]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0.0",
+    "pytest-asyncio>=0.23.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src"]
