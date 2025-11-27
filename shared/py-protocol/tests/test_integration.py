@@ -429,9 +429,8 @@ class TestClientServerIntegration:
         async def handle_request(conn: object, request: Request) -> Response:
             # 模拟一些处理时间
             await asyncio.sleep(0.05)
-            return Response.success(
-                request.id, data={"index": request.params.get("index")}
-            )
+            index = request.params.get("index") if request.params else None
+            return Response.success(request.id, data={"index": index})
 
         server.on_request(handle_request)
 
@@ -448,7 +447,7 @@ class TestClientServerIntegration:
 
         # 验证所有响应
         assert len(responses) == 5
-        received_indices = {r.data["index"] for r in responses}
+        received_indices = {r.data["index"] for r in responses if r.data}
         assert received_indices == {0, 1, 2, 3, 4}
 
         # 清理
@@ -511,7 +510,7 @@ class TestClientServerIntegration:
 
         # 验证错误响应
         assert response.status == "error"
-        assert "Handler exception" in response.error
+        assert response.error is not None and "Handler exception" in response.error
 
         # 清理
         await client.disconnect()

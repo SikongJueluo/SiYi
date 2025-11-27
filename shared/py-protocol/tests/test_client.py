@@ -359,7 +359,8 @@ class TestProtocolClientParseMessage:
         await client._handle_message(raw_message)
 
         # 验证发送了心跳响应
-        client._connection.send.assert_called_once()
+        assert client._connection is not None
+        client._connection.send.assert_called_once()  # type: ignore[attr-defined]
 
     async def test_handle_message_response(self, client: ProtocolClient) -> None:
         """测试处理响应消息"""

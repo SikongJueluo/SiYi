@@ -4,7 +4,11 @@ version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.13"
-dependencies = []
+dependencies = [
+    "siyi-backend",
+    "siyi-mcdr-plugin",
+    "siyi-py-protocol",
+]
 
 [tool.uv.workspace]
 members = [
@@ -15,6 +19,7 @@ members = [
 exclude = []
 
 [tool.uv.sources]
+siyi-backend = { workspace = true }
 siyi-mcdr-plugin = { workspace = true }
 siyi-py-protocol = { workspace = true }
 

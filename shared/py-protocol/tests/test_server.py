@@ -5,6 +5,7 @@
 """
 
 import asyncio
+from typing import Any
 from unittest.mock import AsyncMock
 
 import pytest
@@ -427,7 +428,7 @@ class TestProtocolServerBroadcast:
             server._connections.add(conn)
 
         # 排除第一个连接
-        exclude = {mock_connections[0]}
+        exclude: Any = {mock_connections[0]}
 
         # 广播事件
         await server.broadcast_event("test_event", exclude=exclude)
@@ -508,7 +509,7 @@ class TestProtocolServerBroadcast:
             await create_mock_send(conn)
 
         # 排除第一个连接
-        exclude = {mock_connections[0]}
+        exclude: Any = {mock_connections[0]}
 
         # 广播请求
         results = await server.broadcast_request("test_command", exclude=exclude)

@@ -11,3 +11,6 @@ dev-backend:
 
 update-requirements:
     uv export --project listener/mcdr-plugin --format requirements.txt --output-file listener/mcdr-plugin/requirements.txt
+
+test-py-protocol:
+    uv --project shared\py-protocol run --extra dev pytest shared\py-protocol\tests\ -v
