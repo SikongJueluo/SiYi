@@ -4,7 +4,11 @@ version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.13"
-dependencies = [
+
+[dependency-groups]
+dev = [
+    "pytest>=8.0.0",
+    "pytest-asyncio>=0.23.0",
     "siyi-backend",
     "siyi-mcdr-plugin",
     "siyi-py-protocol",
@@ -22,6 +26,15 @@ exclude = []
 siyi-backend = { workspace = true }
 siyi-mcdr-plugin = { workspace = true }
 siyi-py-protocol = { workspace = true }
+
+[tool.uv]
+package = false
+
+[tool.pyright]
+exclude = [".venv", ".github", "docs", "tests", ".devcontainer"]
+include = ["backend", "shared", "listener"]
+venvPath = "."
+venv = ".venv"
 
 [tool.commitizen]
 name = "cz_conventional_commits"

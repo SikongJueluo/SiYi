@@ -6,9 +6,5 @@ readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
     "mcdreforged>=2.15.5",
-    "siyi-py-protocol",
     "websockets>=15.0.1",
 ]
-
-[tool.uv.sources]
-siyi-py-protocol = { workspace = true }

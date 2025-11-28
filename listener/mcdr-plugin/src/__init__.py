@@ -19,6 +19,12 @@ from typing import Any, Dict, Optional
 from mcdreforged.api.all import Info, PluginServerInterface
 
 from .config import PluginConfig
+from .libs.protocol import (
+    ProtocolClient,
+    Request,
+    Response,
+    set_logger,
+)
 
 # 全局变量
 _config: Optional[PluginConfig] = None
@@ -106,19 +112,6 @@ def _start_client(server: PluginServerInterface) -> None:
     async def _run_client() -> None:
         """运行客户端的异步函数。"""
         global _client, _running
-
-        # 延迟导入，确保依赖已安装
-        try:
-            from siyi_py_protocol import (
-                ProtocolClient,
-                Request,
-                Response,
-                set_logger,
-            )
-        except ImportError as e:
-            server.logger.error(f"无法导入 siyi_py_protocol 库: {e}")
-            server.logger.error("请确保已安装 siyi-py-protocol 依赖")
-            return
 
         # 设置日志级别
         set_logger(server.logger)

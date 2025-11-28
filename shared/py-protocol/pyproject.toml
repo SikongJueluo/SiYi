@@ -4,7 +4,7 @@ version = "0.1.0"
 description = "司驿 Python 通信协议库 - 基于 Pydantic 与 WebSocket 构建的双向通信库"
 readme = "README.md"
 requires-python = ">=3.13"
-license = { text = "MIT" }
+license = "MIT"
 authors = [
     { name = "SiYi Team" }
 ]
@@ -12,7 +12,6 @@ keywords = ["websocket", "protocol", "pydantic", "async", "communication"]
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Developers",
-    "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.13",
     "Topic :: Communications",

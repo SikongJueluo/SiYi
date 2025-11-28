@@ -831,14 +831,22 @@ wheels = [
 name = "siyi"
 version = "0.1.0"
 source = { virtual = "." }
-dependencies = [
+
+[package.dev-dependencies]
+dev = [
+    { name = "pytest" },
+    { name = "pytest-asyncio" },
     { name = "siyi-backend" },
     { name = "siyi-mcdr-plugin" },
     { name = "siyi-py-protocol" },
 ]
 
 [package.metadata]
-requires-dist = [
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "pytest", specifier = ">=8.0.0" },
+    { name = "pytest-asyncio", specifier = ">=0.23.0" },
     { name = "siyi-backend", editable = "backend" },
     { name = "siyi-mcdr-plugin", editable = "listener/mcdr-plugin" },
     { name = "siyi-py-protocol", editable = "shared/py-protocol" },
@@ -879,14 +887,12 @@ version = "0.1.0"
 source = { editable = "listener/mcdr-plugin" }
 dependencies = [
     { name = "mcdreforged" },
-    { name = "siyi-py-protocol" },
     { name = "websockets" },
 ]
 
 [package.metadata]
 requires-dist = [
     { name = "mcdreforged", specifier = ">=2.15.5" },
-    { name = "siyi-py-protocol", editable = "shared/py-protocol" },
     { name = "websockets", specifier = ">=15.0.1" },
 ]
 
