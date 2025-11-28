@@ -9,15 +9,14 @@
 """
 
 import asyncio
-import logging
 from typing import Any, Awaitable, Callable, Dict, Optional, Set
 from uuid import UUID
 
 from websockets.asyncio.server import ServerConnection, serve
 
-from .models import Event, IdType, Request, Response, parse_message
+from src.logger import Logger, get_logger
 
-logger = logging.getLogger(__name__)
+from .models import Event, IdType, Request, Response, parse_message
 
 # 回调函数类型定义
 RequestHandler = Callable[[ServerConnection, Request], Awaitable[Response]]
@@ -62,6 +61,7 @@ class ProtocolServer:
         heartbeat_interval: Optional[float] = 30.0,
         heartbeat_command: str = "heartbeat",
         request_timeout: float = 30.0,
+        logger: Optional[Logger] = None,
     ) -> None:
         """
         初始化服务端
@@ -72,6 +72,7 @@ class ProtocolServer:
             heartbeat_interval: 心跳间隔时间（秒），设为 None 禁用心跳
             heartbeat_command: 心跳请求的命令名称
             request_timeout: 请求超时时间（秒）
+            logger: 可选的 logger 实例，支持标准 logging.Logger 或 structlog
         """
         self.host = host
         self.port = port
@@ -79,6 +80,7 @@ class ProtocolServer:
         self.heartbeat_command = heartbeat_command
         self.request_timeout = request_timeout
 
+        self._logger: Logger = get_logger()
         self._connections: Set[ServerConnection] = set()
         self._request_handler: Optional[RequestHandler] = None
         self._event_handler: Optional[EventHandler] = None
@@ -98,6 +100,19 @@ class ProtocolServer:
     def connection_count(self) -> int:
         """获取当前连接数"""
         return len(self._connections)
+
+    def set_logger(self, logger: Logger) -> None:
+        """
+        动态设置 logger
+
+        Args:
+            logger: 新的 logger 实例，支持标准 logging.Logger 或 structlog
+
+        Example:
+            >>> import structlog
+            >>> server.set_logger(structlog.get_logger())
+        """
+        self._logger = logger
 
     def on_request(self, handler: RequestHandler) -> None:
         """
@@ -150,11 +165,11 @@ class ProtocolServer:
         此方法会阻塞直到服务端停止。
         """
         self._running = True
-        logger.info(f"正在启动服务端: ws://{self.host}:{self.port}")
+        self._logger.info(f"正在启动服务端: ws://{self.host}:{self.port}")
 
         async with serve(self._handle_connection, self.host, self.port) as server:
             self._server = server
-            logger.info(f"服务端已启动: ws://{self.host}:{self.port}")
+            self._logger.info(f"服务端已启动: ws://{self.host}:{self.port}")
             await asyncio.Future()  # 永久运行直到被取消
 
     async def stop(self) -> None:
@@ -178,7 +193,7 @@ class ProtocolServer:
                 future.cancel()
         self._pending_requests.clear()
 
-        logger.info("服务端已停止")
+        self._logger.info("服务端已停止")
 
     async def send_request(
         self,
@@ -218,7 +233,7 @@ class ProtocolServer:
         try:
             # 发送请求
             await self._send_message(connection, request)
-            logger.debug(f"已发送请求: {request.command} (id={request_id})")
+            self._logger.debug(f"已发送请求: {request.command} (id={request_id})")
 
             # 等待响应
             effective_timeout = timeout if timeout is not None else self.request_timeout
@@ -226,7 +241,7 @@ class ProtocolServer:
             return response
 
         except asyncio.TimeoutError:
-            logger.warning(f"请求超时: {request.command} (id={request_id})")
+            self._logger.warning(f"请求超时: {request.command} (id={request_id})")
             raise
 
         finally:
@@ -257,7 +272,7 @@ class ProtocolServer:
 
         event = Event(name=name, data=data)
         await self._send_message(connection, event)
-        logger.debug(f"已发送事件: {event.name}")
+        self._logger.debug(f"已发送事件: {event.name}")
 
     async def broadcast_event(
         self,
@@ -284,7 +299,7 @@ class ProtocolServer:
 
         if tasks:
             await asyncio.gather(*tasks, return_exceptions=True)
-            logger.debug(f"已广播事件: {event.name} (共 {len(tasks)} 个客户端)")
+            self._logger.debug(f"已广播事件: {event.name} (共 {len(tasks)} 个客户端)")
 
     async def broadcast_request(
         self,
@@ -325,21 +340,21 @@ class ProtocolServer:
 
         if tasks:
             await asyncio.gather(*tasks)
-            logger.debug(f"已广播请求: {command} (共 {len(tasks)} 个客户端)")
+            self._logger.debug(f"已广播请求: {command} (共 {len(tasks)} 个客户端)")
 
         return results
 
     async def _handle_connection(self, connection: ServerConnection) -> None:
         """处理新的客户端连接"""
         self._connections.add(connection)
-        logger.info(f"客户端已连接: {connection.remote_address}")
+        self._logger.info(f"客户端已连接: {connection.remote_address}")
 
         # 调用连接回调
         if self._on_connect_handler:
             try:
                 await self._on_connect_handler(connection)
             except Exception as e:
-                logger.error(f"连接回调出错: {e}")
+                self._logger.error(f"连接回调出错: {e}")
 
         # 启动心跳任务
         if self.heartbeat_interval is not None:
@@ -363,9 +378,9 @@ class ProtocolServer:
                 try:
                     await self._on_disconnect_handler(connection)
                 except Exception as e:
-                    logger.error(f"断开回调出错: {e}")
+                    self._logger.error(f"断开回调出错: {e}")
 
-            logger.info(f"客户端已断开: {connection.remote_address}")
+            self._logger.info(f"客户端已断开: {connection.remote_address}")
 
     async def _receive_loop(self, connection: ServerConnection) -> None:
         """消息接收循环"""
@@ -377,10 +392,10 @@ class ProtocolServer:
                 try:
                     await self._handle_message(connection, raw_message)
                 except Exception as e:
-                    logger.error(f"处理消息时出错: {e}")
+                    self._logger.error(f"处理消息时出错: {e}")
 
         except Exception as e:
-            logger.debug(f"连接关闭: {e}")
+            self._logger.debug(f"连接关闭: {e}")
 
     async def _handle_message(
         self, connection: ServerConnection, raw_message: str
@@ -389,7 +404,7 @@ class ProtocolServer:
         try:
             message = parse_message(raw_message)
         except Exception as e:
-            logger.error(f"解析消息失败: {e}, 原始消息: {raw_message}")
+            self._logger.error(f"解析消息失败: {e}, 原始消息: {raw_message}")
             return
 
         if isinstance(message, Request):
@@ -403,44 +418,44 @@ class ProtocolServer:
         self, connection: ServerConnection, request: Request
     ) -> None:
         """处理来自客户端的请求"""
-        logger.debug(f"收到请求: {request.command} (id={request.id})")
+        self._logger.debug(f"收到请求: {request.command} (id={request.id})")
 
         if self._request_handler:
             try:
                 response = await self._request_handler(connection, request)
                 await self._send_message(connection, response)
             except Exception as e:
-                logger.error(f"处理请求时出错: {e}")
+                self._logger.error(f"处理请求时出错: {e}")
                 error_response = Response.fail(request.id, str(e))
                 await self._send_message(connection, error_response)
         else:
             # 没有注册处理器，返回错误响应
             error_response = Response.fail(request.id, "No request handler registered")
             await self._send_message(connection, error_response)
-            logger.warning(f"未注册请求处理器，无法处理请求: {request.command}")
+            self._logger.warning(f"未注册请求处理器，无法处理请求: {request.command}")
 
     async def _handle_response(self, response: Response) -> None:
         """处理来自客户端的响应"""
         response_id = self._normalize_id(response.id)
-        logger.debug(f"收到响应: id={response_id}, status={response.status}")
+        self._logger.debug(f"收到响应: id={response_id}, status={response.status}")
 
         future = self._pending_requests.get(response_id)
         if future and not future.done():
             future.set_result(response)
         else:
-            logger.warning(f"收到未知请求的响应: id={response_id}")
+            self._logger.warning(f"收到未知请求的响应: id={response_id}")
 
     async def _handle_event(self, connection: ServerConnection, event: Event) -> None:
         """处理来自客户端的事件"""
-        logger.debug(f"收到事件: {event.name}")
+        self._logger.debug(f"收到事件: {event.name}")
 
         if self._event_handler:
             try:
                 await self._event_handler(connection, event)
             except Exception as e:
-                logger.error(f"处理事件时出错: {e}")
+                self._logger.error(f"处理事件时出错: {e}")
         else:
-            logger.debug(f"未注册事件处理器，忽略事件: {event.name}")
+            self._logger.debug(f"未注册事件处理器，忽略事件: {event.name}")
 
     async def _heartbeat_loop(self, connection: ServerConnection) -> None:
         """心跳发送循环"""
@@ -462,13 +477,15 @@ class ProtocolServer:
                         timeout=self.request_timeout,
                     )
                     if response.status != "ok":
-                        logger.warning(f"心跳响应异常: {response.error}")
+                        self._logger.warning(f"心跳响应异常: {response.error}")
                 except asyncio.TimeoutError:
-                    logger.warning(f"心跳超时，断开连接: {connection.remote_address}")
+                    self._logger.warning(
+                        f"心跳超时，断开连接: {connection.remote_address}"
+                    )
                     await connection.close()
                     break
                 except Exception as e:
-                    logger.error(f"发送心跳时出错: {e}")
+                    self._logger.error(f"发送心跳时出错: {e}")
                     break
 
             except asyncio.CancelledError:

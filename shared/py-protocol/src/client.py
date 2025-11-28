@@ -9,16 +9,14 @@
 """
 
 import asyncio
-import logging
 from typing import Any, Awaitable, Callable, Dict, Optional
 from uuid import UUID
 
 import websockets
 from websockets.asyncio.client import ClientConnection
 
+from .logger import Logger, get_logger
 from .models import Event, IdType, Request, Response, parse_message
-
-logger = logging.getLogger(__name__)
 
 # 回调函数类型定义
 RequestHandler = Callable[[Request], Awaitable[Response]]
@@ -62,6 +60,7 @@ class ProtocolClient:
         heartbeat_command: str = "heartbeat",
         reconnect_interval: float = 5.0,
         request_timeout: float = 30.0,
+        logger: Optional[Logger] = None,
     ) -> None:
         """
         初始化客户端
@@ -71,12 +70,14 @@ class ProtocolClient:
             heartbeat_command: 心跳请求的命令名称
             reconnect_interval: 重连间隔时间（秒）
             request_timeout: 请求超时时间（秒）
+            logger: 可选的 logger 实例，支持标准 logging.Logger 或 structlog
         """
         self.url = url
         self.heartbeat_command = heartbeat_command
         self.reconnect_interval = reconnect_interval
         self.request_timeout = request_timeout
 
+        self._logger: Logger = get_logger()
         self._connection: Optional[ClientConnection] = None
         self._request_handler: Optional[RequestHandler] = None
         self._event_handler: Optional[EventHandler] = None
@@ -89,6 +90,19 @@ class ProtocolClient:
     def is_connected(self) -> bool:
         """检查客户端是否已连接"""
         return self._connection is not None and self._connected.is_set()
+
+    def set_logger(self, logger: Logger) -> None:
+        """
+        动态设置 logger
+
+        Args:
+            logger: 新的 logger 实例，支持标准 logging.Logger 或 structlog
+
+        Example:
+            >>> import structlog
+            >>> client.set_logger(structlog.get_logger())
+        """
+        self._logger = logger
 
     def on_request(self, handler: RequestHandler) -> None:
         """
@@ -126,10 +140,10 @@ class ProtocolClient:
 
         while self._running:
             try:
-                logger.info(f"正在连接到 {self.url}...")
+                self._logger.info(f"正在连接到 {self.url}...")
                 self._connection = await websockets.connect(self.url)
                 self._connected.set()
-                logger.info(f"已成功连接到 {self.url}")
+                self._logger.info(f"已成功连接到 {self.url}")
 
                 # 启动消息接收任务
                 self._receive_task = asyncio.create_task(self._receive_loop())
@@ -138,19 +152,19 @@ class ProtocolClient:
                 await self._receive_task
 
             except asyncio.CancelledError:
-                logger.info("连接任务被取消")
+                self._logger.info("连接任务被取消")
                 break
 
             except Exception as e:
                 self._connected.clear()
-                logger.error(f"连接错误: {e}")
+                self._logger.error(f"连接错误: {e}")
 
                 if not auto_reconnect or not self._running:
                     if not auto_reconnect:
                         raise ConnectionError(f"无法连接到 {self.url}: {e}") from e
                     break
 
-                logger.info(f"将在 {self.reconnect_interval} 秒后尝试重连...")
+                self._logger.info(f"将在 {self.reconnect_interval} 秒后尝试重连...")
                 await asyncio.sleep(self.reconnect_interval)
 
     async def disconnect(self) -> None:
@@ -177,7 +191,7 @@ class ProtocolClient:
                 future.cancel()
         self._pending_requests.clear()
 
-        logger.info("已断开连接")
+        self._logger.info("已断开连接")
 
     async def send_request(
         self,
@@ -214,7 +228,7 @@ class ProtocolClient:
         try:
             # 发送请求
             await self._send_message(request)
-            logger.debug(f"已发送请求: {request.command} (id={request_id})")
+            self._logger.debug(f"已发送请求: {request.command} (id={request_id})")
 
             # 等待响应
             effective_timeout = timeout if timeout is not None else self.request_timeout
@@ -222,7 +236,7 @@ class ProtocolClient:
             return response
 
         except asyncio.TimeoutError:
-            logger.warning(f"请求超时: {request.command} (id={request_id})")
+            self._logger.warning(f"请求超时: {request.command} (id={request_id})")
             raise
 
         finally:
@@ -251,7 +265,7 @@ class ProtocolClient:
 
         event = Event(name=name, data=data)
         await self._send_message(event)
-        logger.debug(f"已发送事件: {event.name}")
+        self._logger.debug(f"已发送事件: {event.name}")
 
     async def wait_connected(self, timeout: Optional[float] = None) -> bool:
         """
@@ -290,13 +304,13 @@ class ProtocolClient:
                 try:
                     await self._handle_message(raw_message)
                 except Exception as e:
-                    logger.error(f"处理消息时出错: {e}")
+                    self._logger.error(f"处理消息时出错: {e}")
 
         except websockets.ConnectionClosed as e:
-            logger.info(f"连接已关闭: {e}")
+            self._logger.info(f"连接已关闭: {e}")
 
         except Exception as e:
-            logger.error(f"接收消息时出错: {e}")
+            self._logger.error(f"接收消息时出错: {e}")
 
         finally:
             self._connected.clear()
@@ -306,7 +320,7 @@ class ProtocolClient:
         try:
             message = parse_message(raw_message)
         except Exception as e:
-            logger.error(f"解析消息失败: {e}, 原始消息: {raw_message}")
+            self._logger.error(f"解析消息失败: {e}, 原始消息: {raw_message}")
             return
 
         if isinstance(message, Request):
@@ -318,13 +332,13 @@ class ProtocolClient:
 
     async def _handle_request(self, request: Request) -> None:
         """处理来自服务端的请求"""
-        logger.debug(f"收到请求: {request.command} (id={request.id})")
+        self._logger.debug(f"收到请求: {request.command} (id={request.id})")
 
         # 自动回应心跳
         if request.command == self.heartbeat_command:
             response = Response.success(request.id, data={"status": "alive"})
             await self._send_message(response)
-            logger.debug("已回应心跳")
+            self._logger.debug("已回应心跳")
             return
 
         # 使用用户注册的处理器
@@ -333,37 +347,37 @@ class ProtocolClient:
                 response = await self._request_handler(request)
                 await self._send_message(response)
             except Exception as e:
-                logger.error(f"处理请求时出错: {e}")
+                self._logger.error(f"处理请求时出错: {e}")
                 error_response = Response.fail(request.id, str(e))
                 await self._send_message(error_response)
         else:
             # 没有注册处理器，返回错误响应
             error_response = Response.fail(request.id, "No request handler registered")
             await self._send_message(error_response)
-            logger.warning(f"未注册请求处理器，无法处理请求: {request.command}")
+            self._logger.warning(f"未注册请求处理器，无法处理请求: {request.command}")
 
     async def _handle_response(self, response: Response) -> None:
         """处理来自服务端的响应"""
         response_id = self._normalize_id(response.id)
-        logger.debug(f"收到响应: id={response_id}, status={response.status}")
+        self._logger.debug(f"收到响应: id={response_id}, status={response.status}")
 
         future = self._pending_requests.get(response_id)
         if future and not future.done():
             future.set_result(response)
         else:
-            logger.warning(f"收到未知请求的响应: id={response_id}")
+            self._logger.warning(f"收到未知请求的响应: id={response_id}")
 
     async def _handle_event(self, event: Event) -> None:
         """处理来自服务端的事件"""
-        logger.debug(f"收到事件: {event.name}")
+        self._logger.debug(f"收到事件: {event.name}")
 
         if self._event_handler:
             try:
                 await self._event_handler(event)
             except Exception as e:
-                logger.error(f"处理事件时出错: {e}")
+                self._logger.error(f"处理事件时出错: {e}")
         else:
-            logger.debug(f"未注册事件处理器，忽略事件: {event.name}")
+            self._logger.debug(f"未注册事件处理器，忽略事件: {event.name}")
 
     @staticmethod
     def _normalize_id(id_value: IdType) -> str:

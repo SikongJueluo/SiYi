@@ -879,12 +879,14 @@ version = "0.1.0"
 source = { editable = "listener/mcdr-plugin" }
 dependencies = [
     { name = "mcdreforged" },
+    { name = "siyi-py-protocol" },
     { name = "websockets" },
 ]
 
 [package.metadata]
 requires-dist = [
     { name = "mcdreforged", specifier = ">=2.15.5" },
+    { name = "siyi-py-protocol", editable = "shared/py-protocol" },
     { name = "websockets", specifier = ">=15.0.1" },
 ]
 

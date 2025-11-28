@@ -36,6 +36,7 @@ from .client import (
 from .client import (
     RequestHandler as ClientRequestHandler,
 )
+from .logger import Logger, get_logger, set_logger
 from .models import (
     Event,
     IdType,
@@ -73,5 +74,9 @@ __all__ = [
     "ServerRequestHandler",
     "ServerEventHandler",
     "ConnectionHandler",
+    # Logger
+    "Logger",
+    "get_logger",
+    "set_logger",
     "__version__",
 ]
